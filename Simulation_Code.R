@@ -1,9 +1,65 @@
-#Author: Robert C. Lonsinger
-#Affiliation" "U.S. Geological Survey, Oklahoma Cooperative Fish and Wildlife Research Unit, Oklahoma State University, 007 Agriculture Hall, Stillwater, OK 74078, USA
+#################---------Description of Process Completed with R Code---------#################
+################################################################################################
+#-- R functions and script used to simulate patterns of co-occurrence occurrence for two hypothetical species (Species A and Species B) 
+#--   across a simple continuous landscape comprised of N equal-sized grid cells without environmental variation. 
 
-#R script and functions used to generate simulations and perform analyses
+#-- Species A is assumed to be dominant and Species B subordinate (sensu Richmond et al. 2010; Ecological Applications). 
+#-- For simplicity, only a single individual of a given species can occupancy of a site, therefore, there is no abundance-induced heterogeneity in detection (p).
+#-- Species A is randomly distributed across the landscape at specified level(s) of true occupancy for Species A (ΨA) 
 
-#--Function to RUN and COMPILE for CLOSURE
+#-- Species B is then randomly distributed according to three scenarios in relation to Species A: 
+#--    (i) the occurrence of Species B is negatively associated with the occurrence of Species A (i.e., avoidance); 
+#--    (ii) the occurrence of Species B is positively associated with the occurrence of Species A (i.e., aggregation); or 
+#--    (iii) the occurrence of Species B is not influenced by the occurrence of Species A (i.e., independence). 
+
+#-- For simulations of avoidance, Species B is randomly distributed across the landscape at specified level(s) of ΨBA and ΨBa such that ΨBA < ΨBa, 
+#--   where ΨBA = true occupancy of Species B given Species A was present, and ΨBa = true occupancy of Species B given Species A was absent.  
+#-- For simulations of aggregation, Species B is randomly distributed across the landscape at specified level(s) of ΨBA and ΨBa such that ΨBA > ΨBa. 
+#-- For simulations of independence, Species B was randomly distributed across the landscape at specified level(s) of such that ΨBA = ΨBa (i.e., ΨB).
+
+#-- Patterns of occurrence may be simulated when closure assumption is met, or when it is violated. 
+#-- When closure is met, the initial distribution of Species A and Species B is maintained over the period of sampling for each simulation.
+#-- When closure is violated, the distribution of Species A and Species B may change over the period of sampling for each simulation under the following conditions:
+#--   (i) both species have the capacity to move among sites between surveys, and
+#--   (ii) the probability of movement (prM) from an occupied site to another site between surveys is the same for both species (prMA = prMB = prM).
+
+#-- Between surveys, movements by the dominant species (Species A) are independent of the subordinate species (Species B).
+#--   For Species A, the order in which individuals are permitted to move between each survey is randomized
+#--   When an individual moves from a site, the settlement site is probabilistically selected as a function of:
+#--      (i) the site’s availability (i.e., not currently occupied by the same species), and 
+#--      (ii) distance from the starting site, such that movements are more likely to nearby available sites. 
+
+#-- For simulations in which ΨBA = ΨBa, the process used for Species A is repeated to simulate movements for Species B. 
+#-- For simulations in which ΨBA ≠ ΨBa, the settlement site for Species B is probabilistically selected as a function of:
+#--   (i) the site’s availability, 
+#--   (ii) distance from the starting site, and 
+#--   (iii) ΨBA (when Species A is present at a site) or ΨBa (when Species A is not present at a site).
+
+#-- For all simulations, p for Species A (pA) and Species B (pB) is fixed (e.g., pA = pB = 0.05) 
+#--   The probability of detection for each species is set to be:
+#--      (i) independent of the presence or detection of the other species, and 
+#--      (ii) constant over time. 
+
+#-- Species-specific encounter histories are generated for for M randomly sampled sites over J replicated surveys. 
+#-- Surveys (J) may be collapsed to a smaller number of survey occasions (Occ), where each occasion contains sequential surveys 
+
+#-- For conditions considered, sample data are analyzed using two competing single-season, conditional two-species models (Richmond et al. 2010): 
+#--   (i) a model in which the occurrence of Species A influences the occurrence of Species B (i.e., ΨA, ΨBA ≠ ΨBa; where ΨBA and ΨBa are estimated separately), and
+#--   (ii) a model for independence between Species A and Species B (i.e., ΨA, ΨBA = ΨBa ; where ΨBA and ΨBa are not estimated separately and are presented together as ΨB).
+#-- The detection submodels for each species are held constant (i.e., the null model), regardless of occupancy or detection state of the other species. 
+#-- Occupancy analyses are performed with the ‘wiqid’ R package. 
+#-- The species interaction factor (SIF) is calculated following Richmond et al. (2010) when the most-supported model suggested that Species A influenced Species B.
+#-- Rreliability of the occupancy estimates is summarized from the most-supported models across simulations. 
+#-- Percent bias of occupancy estimates relative to the true parameter values are calculated for each simulation with the ‘SimDesign’ package in R.
+#--    Percent bias is summarized as the mean bias for each parameter and set of conditions. 
+#-- Overall model performance under each set of conditions is summarized as the proportion of simulations that found support for the true pattern of co-occurrence. 
+#-- For each set of conditions, the expected (or true) SIF is compared to the mean SIF (across simulations when a model of influence was most supported).
+
+
+#################---------Functions developed for use in subsequent R Code---------#################
+####################################################################################################
+
+#--Function to RUN SIMULATIONS and COMPILE RESULTS when CLOSURE is MET
 RunClosure<-function(Grd, M, J, Occ, psiA, psiBA, psiBa, pA, pB, Sims = 10, ci = 0.95){
   Comb.dataA <- list() #identify a list for which you want to results for each simulation (among combinations of conditions for psiA)
   for(psiA.i in 1:length(psiA)){
@@ -168,7 +224,7 @@ OccMods<-function(ehA, ehB, ci = 0.95){
   return(list(top = top, Mod.Table = temp, SIF = SIF, Ind_Model = psiB_ind_psiA, Inf_Model = psiB_inf_psiA))
 }
 
-#--FUNCTION to RUN and COMPILE for NO CLOSURE
+#--FUNCTION to UN SIMULATIONS and COMPILE RESULTS when CLOSURE is NOT MET
 RunNoClosure<-function(Grd, M, J, Occ, psiA, psiBA, psiBa, pA, pB, prM, prMA = NULL, Sims = 10, dist.list, ci = 0.95, Site.column = TRUE){
   Comb.dataA <- list()
   for(psiA.i in 1:length(psiA)){
@@ -464,7 +520,7 @@ RunSummary2 <- function(Sim.summary, Sim.results, Sims){
   return(temp.sim.results)
 }
 
-#--Function RunSummary3() uses out put from RunSummary2 to generate List with 9 elements summarizing the results for each analysis
+#--Function RunSummary3() uses output from RunSummary2 to generate List with 9 elements summarizing the results for each analysis
 RunSummary3<-function(Simulation.data, pattern = c("Independence", "Avoidance", "Aggregation" ), Scale = c("fs", "ls"), closed = TRUE, M, Sims){
   temp<-Simulation.data
   TPsiA <- TPsiBA <- TPsiBa <- mn.psiA <- se.psiA <- bias.psiA <- mn.psiBA <- se.psiBA<-bias.psiBA<-mn.psiBa<-se.psiBa <-
@@ -634,14 +690,22 @@ SE <- function(x){
   sd(x, na.rm=TRUE)/sqrt(length(x) - sum(is.na(x)))
 }
 
-#################---------START Code for Running Analyses---------#################
-###################################################################################
-##IMPORT DATA FOR A GRID THAT CAN BE USED AS THE SPATIAL EXTENT FOR SAMPLING.
+#################---------START Code for Running Simulation and Analyses---------#################
+##################################################################################################
 
-#Import Grid data
+#Load Required packages 
+library(wiqid)
+library(SimDesign)
+library(dplyr)
 library(readxl)
+
+#Import Grid data - represents the spatial extent of the simulation and sampling
+#-- Note that grid file is provided as a .xls file with 5 columns for Site (with 900 sites), Quad (representing 4 quadrants per site), 
+#--   OID (site identifier), X (coordinate), and Y (coordinate). 
+#--   Thus, the number of rows = Site (90) x Quad (4) = 3600 rows. 
+#--   Only the center of the 900 sites (i.e., the average location of the quandrant centers) are extracted and used. 
+
 SimGrid <- read_excel("~/RDatasets/CoOccSim/SimGrid_sites.xls")
-View(SimGrid)
 
 temp.grid <- SimGrid
 temp.site <- temp.x <- temp.y <- NULL
@@ -652,7 +716,7 @@ for(i in 1:length(unique(temp.grid$Site))){
 }
 temp.grid <- data.frame(Site = temp.site, X = temp.x, Y = temp.y)
 
-##--Determine PW distances between points
+##--Determine pairwise distances between points
 Site.dist <- list()
 for(i in 1:nrow(temp.grid)){
   temp.site <- temp.dist <- NULL
@@ -665,10 +729,6 @@ for(i in 1:nrow(temp.grid)){
   Site.dist[[i]] <- data.frame(Site = temp.site, Dist = temp.dist)
 }
 rm(list=ls(pattern="^temp"))
-
-library(wiqid)
-library(SimDesign)
-library(dplyr)
 
 #ANALYSES with M = 100 or M = 250 sites and Sims = 500 when CLOSURE IS MET
 #Independence
@@ -697,7 +757,6 @@ Avd.Sim500.M250.nc <- RunNoClosure(Grd = length(unique(SimGrid$Site)), M = 250, 
 Agg.Sim500.M100.nc <- RunNoClosure(Grd = length(unique(SimGrid$Site)), M = 100, J = 21, Occ = 7, psiA = c(0.4, 0.55, 0.7), psiBA = c(0.65, 0.75, 0.85), psiBa = c(0.25, 0.35, 0.45), pA = 0.05, pB = 0.05, prM = 0.02, prMA = 0.02, Sims = 500, dist.list = Site.dist, ci = 0.95, Site.column = TRUE)
 Agg.Sim500.M250.nc <- RunNoClosure(Grd = length(unique(SimGrid$Site)), M = 250, J = 21, Occ = 7, psiA = c(0.4, 0.55, 0.7), psiBA = c(0.65, 0.75, 0.85), psiBa = c(0.25, 0.35, 0.45), pA = 0.05, pB = 0.05, prM = 0.02, prMA = 0.02, Sims = 500, dist.list = Site.dist, ci = 0.95, Site.column = TRUE)
 
-
 #Summarize simulation results
 temp1<-RunSummary(Sim.summary = Ind.Sim500.M100.c$Sim.summary, closure = TRUE, Pattern = c("Independence"),Sims = 500)
 temp2<-RunSummary(Sim.summary = Ind.Sim500.M250.c$Sim.summary, closure = TRUE, Pattern = c("Independence"),Sims = 500)
@@ -706,7 +765,6 @@ temp4<-RunSummary(Sim.summary = Avd.Sim500.M250.c$Sim.summary, closure = TRUE, P
 temp5<-RunSummary(Sim.summary = Agg.Sim500.M100.c$Sim.summary, closure = TRUE, Pattern = c("Aggregation"),Sims = 500)
 temp6<-RunSummary(Sim.summary = Agg.Sim500.M250.c$Sim.summary, closure = TRUE, Pattern = c("Aggregation"),Sims = 500)
 Closure.results <- rbind(temp1, temp2, temp3, temp4, temp5, temp6)
-rm(temp1, temp2, temp3, temp4, temp5, temp6)
 
 temp1<-RunSummary(Sim.summary = Ind.Sim500.M100.nc$Sim.summary, closure = FALSE, Pattern = c("Independence"),Sims = 500)
 temp2<-RunSummary(Sim.summary = Ind.Sim500.M250.nc$Sim.summary, closure = FALSE, Pattern = c("Independence"),Sims = 500)
